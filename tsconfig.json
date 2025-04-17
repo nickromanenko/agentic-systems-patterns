@@ -1,0 +1,31 @@
+{
+    "ts-node": {
+        // Do not forget to `npm i -D tsconfig-paths`
+        "require": ["tsconfig-paths/register"]
+    },
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "CommonJS",
+        "composite": true,
+        "allowJs": true,
+        "removeComments": true,
+        "resolveJsonModule": true,
+        "typeRoots": ["./node_modules/@types"],
+        "sourceMap": true,
+        "rootDir": "./",
+        "outDir": "./build",
+        "strict": false,
+        "lib": ["ESNext", "dom"],
+        "baseUrl": "./",
+        "forceConsistentCasingInFileNames": true,
+        "esModuleInterop": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "moduleResolution": "Node",
+        "skipLibCheck": true,
+        "strictPropertyInitialization": false,
+        "strictNullChecks": false
+    },
+    "include": ["**/*.ts"],
+    "exclude": ["node_modules", "build"]
+}
