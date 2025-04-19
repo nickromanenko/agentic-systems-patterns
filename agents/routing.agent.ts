@@ -10,8 +10,10 @@
  * improving efficiency and accuracy compared to a single monolithic prompt.
  */
 
+import { tool } from '@langchain/core/tools';
 import { CompiledStateGraph, MemorySaver, StateGraph, StateGraphArgs } from '@langchain/langgraph';
 import { ChatOpenAI } from '@langchain/openai';
+import { z } from 'zod'; // Import zod for schema definition
 
 // Define the state schema for the graph
 interface AgentState {}
@@ -19,7 +21,10 @@ interface AgentState {}
 const agentState: StateGraphArgs<AgentState>['channels'] = {};
 
 // Define the router output schema
-interface RouterOutput {}
+interface RouterOutput {
+    category: AgentState['category'];
+    reasoning: string;
+}
 
 class RoutingAgent {
     // Revert to simpler graph typing
@@ -60,8 +65,38 @@ class RoutingAgent {
         console.log('--- Handling Billing Query ---');
     };
 
+    // Define the tech support tool
+    private techSupportTool = tool(
+        async (input: { query: string }) => {
+            const { query } = input;
+            const lowerQuery = query.toLowerCase();
+
+            // Common technical issues with hardcoded responses
+            if (lowerQuery.includes('password') && (lowerQuery.includes('reset') || lowerQuery.includes('forgot'))) {
+                return 'To reset your password:\n1. Go to our login page\n2. Click "Forgot Password"\n3. Enter your email\n4. Check your email for reset instructions\n5. Follow the link to create a new password';
+            }
+
+            if (lowerQuery.includes('login') && (lowerQuery.includes('problem') || lowerQuery.includes('issue'))) {
+                return "For login issues:\n1. Ensure you're using the correct email/username\n2. Check your password is correct\n3. Try clearing browser cookies/cache\n4. Try a different browser\nIf still having issues, contact support@example.com";
+            }
+
+            if (lowerQuery.includes('slow') || lowerQuery.includes('performance')) {
+                return 'For performance issues:\n1. Check your internet connection\n2. Close other tabs/applications\n3. Clear browser cache\n4. Try a different browser\n5. Restart your device';
+            }
+
+            return 'No specific solution found for this technical issue. Please provide more details about your problem.';
+        },
+        {
+            name: 'tech_support_handler',
+            description: 'Handles common technical support queries with predefined solutions.',
+            schema: z.object({
+                query: z.string().describe('The user query related to a technical issue.'),
+            }),
+        },
+    );
+
     private handleTechSupport = async (state: AgentState): Promise<Partial<AgentState>> => {
-        console.log('--- Handling Technical Support Query ---');
+        console.log('--- Handling Technical Support Query (LLM decides tool use) ---');
     };
 
     private handleGeneralInquiry = async (state: AgentState): Promise<Partial<AgentState>> => {
