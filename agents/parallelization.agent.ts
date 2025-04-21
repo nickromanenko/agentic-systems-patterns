@@ -94,11 +94,18 @@ class ParallelizationAgent {
 
         // Define Edges
         // Start branches out to the three parallel analysis nodes
+        this.graph.addEdge(START, 'analyze_sentiment' as any); // Use 'as any'
+        this.graph.addEdge(START, 'extract_topics' as any); // Use 'as any'
+        this.graph.addEdge(START, 'identify_suggestions' as any); // Use 'as any'
 
         // Edges from parallel nodes to the aggregator node
         // The aggregator will wait until all incoming edges are resolved
+        this.graph.addEdge('analyze_sentiment' as any, 'aggregate_results' as any); // Use 'as any'
+        this.graph.addEdge('extract_topics' as any, 'aggregate_results' as any); // Use 'as any'
+        this.graph.addEdge('identify_suggestions' as any, 'aggregate_results' as any); // Use 'as any'
 
         // Edge from aggregator to END
+        this.graph.addEdge('aggregate_results' as any, END); // Use 'as any'
 
         // Compile the graph
         this.compiledGraph = this.graph.compile({ checkpointer: this.checkpointer });
@@ -181,6 +188,15 @@ class ParallelizationAgent {
     // Aggregator node using RunnableLambda for simplicity
     private aggregateResults = async (state: AgentState): Promise<Partial<AgentState>> => {
         console.log('--- Aggregating Results ---');
+        const final_analysis = {
+            sentiment: state.sentiment ?? 'N/A',
+            topics: state.topics ?? [],
+            suggestions: state.suggestions ?? [],
+        };
+        console.log('Final Analysis:', final_analysis);
+        const humanMessage = new HumanMessage('Aggregate results');
+        const aiMessage = new AIMessage({ content: `Analysis complete: ${JSON.stringify(final_analysis)}` });
+        return { final_analysis: final_analysis, messages: [humanMessage, aiMessage] };
     };
 
     // --- Public Invocation Method ---
