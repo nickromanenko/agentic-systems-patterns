@@ -49,7 +49,7 @@ interface AutonomousAgentState {
 const searchTool = tool(
     async (input: { query: string }) => {
         const { query } = input;
-        console.log(`--- Web Search Tool Called with input: "${input}" ---`);
+        console.log(`--- Web Search Tool Called with input: "${query}" ---`);
         const response = await tavilyClient.search(query, { topic: 'general', searchDepth: 'basic' });
         const results = response.results.map(result => `Title: ${result.title}, URL: ${result.url}, Content: ${result.content}`);
         return results.join('\n=====\n');
@@ -232,7 +232,6 @@ class AutonomousAgent {
     };
 
     // --- Public Invocation Method ---
-
     async invoke(threadId: string, input: string, maxIterations: number = 5): Promise<Record<string, any>> {
         const initialState: Partial<AutonomousAgentState> = {
             input,
