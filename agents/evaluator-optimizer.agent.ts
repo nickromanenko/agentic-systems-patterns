@@ -1,5 +1,5 @@
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
-import { JsonOutputParser, StringOutputParser } from '@langchain/core/output_parsers';
+import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { CompiledStateGraph, END, MemorySaver, START, StateGraph, StateGraphArgs } from '@langchain/langgraph';
@@ -119,30 +119,6 @@ Desired Tone: {tone}`;
         }
 
         promptText += `\n\nSubject Line:`;
-
-        const prompt = PromptTemplate.fromTemplate(promptText);
-        const chain = prompt.pipe(this.generatorLlm).pipe(new StringOutputParser());
-
-        let subjectLine = '';
-        let aiMessageContent = '';
-        try {
-            subjectLine = await chain.invoke({ productInfo, audience, tone, feedback });
-            subjectLine = subjectLine.trim().replace(/^"|"$/g, ''); // Clean up quotes
-            aiMessageContent = `Generated subject line: "${subjectLine}"`;
-            console.log('Generated Subject Line:', subjectLine);
-        } catch (error) {
-            console.error('Generator failed:', error);
-            subjectLine = 'Error generating subject line.'; // Handle error case
-            aiMessageContent = `Generator failed: ${error}`;
-        }
-
-        const humanMessage = new HumanMessage(
-            feedback ? `Refine subject line based on feedback: ${feedback}` : `Generate initial subject line for: ${productInfo}`,
-        );
-        const aiMessage = new AIMessage({ content: aiMessageContent });
-
-        // Increment iteration count via the reducer
-        return { currentSubjectLine: subjectLine, messages: [humanMessage, aiMessage], iterations: 1 };
     };
 
     // Evaluator: Critiques the subject line and decides whether to accept or reject
@@ -186,28 +162,6 @@ Evaluation:`,
         );
         const parser = new JsonOutputParser<EvaluatorOutput>();
         const chain = prompt.pipe(this.evaluatorLlm).pipe(parser);
-
-        let evaluationResult: 'accept' | 'reject' = 'reject';
-        let feedback = 'Evaluation failed.';
-        let aiMessageContent = '';
-
-        try {
-            const result = await chain.invoke({ productInfo, audience, tone, currentSubjectLine });
-            evaluationResult = result.decision;
-            feedback = result.feedback;
-            aiMessageContent = `Evaluation: ${result.decision}. Feedback: ${result.feedback}`;
-            console.log('Evaluation Result:', result);
-        } catch (error) {
-            console.error('Evaluator failed:', error);
-            // Keep default 'reject' and provide error feedback
-            feedback = `Evaluator failed to parse response: ${error}. Please try generating again.`;
-            aiMessageContent = `Evaluator failed: ${error}`;
-        }
-
-        const humanMessage = new HumanMessage(`Evaluate subject line: "${currentSubjectLine}"`);
-        const aiMessage = new AIMessage({ content: aiMessageContent });
-
-        return { evaluationResult, feedback, messages: [humanMessage, aiMessage] };
     };
 
     // --- Conditional Edge Logic ---
@@ -216,20 +170,6 @@ Evaluation:`,
     private shouldContinue = (state: EvaluatorOptimizerState): 'continue' | 'end' => {
         console.log('--- Checking Condition ---');
         const { evaluationResult, iterations, maxIterations } = state;
-
-        if (iterations >= maxIterations) {
-            console.log(`Max iterations (${maxIterations}) reached. Ending.`);
-            // Potentially add a message indicating max iterations reached
-            return 'end';
-        }
-
-        if (evaluationResult === 'accept') {
-            console.log('Evaluation accepted. Ending.');
-            return 'end';
-        } else {
-            console.log('Evaluation rejected. Continuing loop.');
-            return 'continue';
-        }
     };
 
     // --- Public Invocation Method ---
