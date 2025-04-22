@@ -215,6 +215,20 @@ class AutonomousAgent {
     private shouldContinue = (state: AutonomousAgentState): 'continue' | 'end' => {
         console.log('--- Checking Condition ---');
         const { agent_outcome, iterations, maxIterations } = state;
+
+        if (iterations >= maxIterations) {
+            console.log(`Max iterations (${maxIterations}) reached. Forcing end.`);
+            // Optionally modify the outcome to indicate forced termination
+            return 'end';
+        }
+
+        if (agent_outcome && 'tool' in agent_outcome) {
+            console.log('Agent requested tool use. Continuing.');
+            return 'continue';
+        } else {
+            console.log('Agent decided to finish. Ending.');
+            return 'end';
+        }
     };
 
     // --- Public Invocation Method ---
